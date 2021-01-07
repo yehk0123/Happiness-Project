@@ -1,5 +1,5 @@
 ---
-title: "STAT101C Project"
+title: "STAT101C H1B Visa Project"
 author: "Yae Hyeon Kyeong (404960183)"
 date: "July 22, 2018"
 output: pdf_document
