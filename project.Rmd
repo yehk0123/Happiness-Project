@@ -1,0 +1,375 @@
+---
+title: "STAT101C Project"
+author: "Yae Hyeon Kyeong (404960183)"
+date: "July 22, 2018"
+output: pdf_document
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+```
+
+```{r}
+library(car)
+library(MASS)
+library(leaps)
+library(class)
+library(caret)
+library(e1071)
+
+dim(train)
+dim(X_test)
+
+sample <- sample(4918,4426)
+train_train <- train[sample,]
+test_train <- train[-sample,]
+
+train_train_1 <- train_train
+test_train_1 <- test_train
+
+for (i in 1:ncol(train_train_1))
+  {
+    if(nlevels(train_train_1 [, i]) > nlevels(test_train_1 [, i]))
+      levels(test_train_1 [, i]) <- levels(train_train_1 [, i])
+    if(nlevels(train_train_1 [, i]) < nlevels(test_train_1 [, i]))
+      levels(train_train_1 [, i]) <- levels(test_train_1 [, i])
+}
+
+str(train_train_1)
+str(test_train_1)
+dim(train_train_1)
+
+levels(train_train_1$CASE_STATUS) <- c(1,0)   # 1 - Certified, 0 - Denied
+levels(train_train_1$VISA_CLASS) <- c(1,2,3,4)     
+# 1 - "E-3 Australian"    2 - "H-1B"        3-  "H-1B1 Chile"   4-  "H-1B1 Singapore"
+levels(train_train_1$AGENT_REPRESENTING_EMPLOYER) <- c(0,1,2)   #  0 - "", 1 - N ,  2 - Y
+levels(train_train_1$FULL_TIME_POSITION) <- c(0,1)    # 1- Y  , 0 - N
+levels(train_train_1$PW_UNIT_OF_PAY) <- c(0,1,2,3,4,5)
+# 0 - "" , 1 - "Bi-Weekly", 2 - "Hour"   , 3 -  "Month"  , 4 -  "Week" , 5 -  "Year"  
+levels(train_train_1$PW_WAGE_LEVEL) <- c(0,1,2,3,4)   
+# 0 -""   1- "Level I"  2- "Level II" 3- "Level III" 4- "Level IV"
+levels(train_train_1$PW_SOURCE) <- c(0,1,2,3,4,5)   
+# 0 -""   1-   "CBA"  2- "DBA"  3- "OES"  4- "Other" 5- "SCA"  
+levels(train_train_1$H1B_DEPENDENT) <- c(0,1,2)   #  0 - "", 1 - N ,  2 - Y
+levels(train_train_1$WILLFUL_VIOLATOR) <- c(0,1,2)    #  0 - "", 1 - N ,  2 - Y
+levels(train_train_1$WORKSITE_REGION) <- c(1,2,3,4,5)
+# 1- "North Central" 2-  "Northeast"  3-   "OffShore"   4-   "South"      5-   "West" 
+
+
+levels(test_train_1$CASE_STATUS) <- c(1,0)   # 1 - Certified, 0 - Denied
+levels(test_train_1$VISA_CLASS) <- c(1,2,3,4)     
+# 1 - "E-3 Australian"    2 - "H-1B"        3-  "H-1B1 Chile"   4-  "H-1B1 Singapore"
+levels(test_train_1$AGENT_REPRESENTING_EMPLOYER) <- c(0,1,2)      #  0 - "", 1 - N ,  2 - Y
+levels(test_train_1$FULL_TIME_POSITION) <- c(0,1)    # 1- Y  , 0 - N
+levels(test_train_1$PW_UNIT_OF_PAY) <- c(0,1,2,3,4,5)
+# 0 - "" , 1 - "Bi-Weekly", 2 - "Hour"   , 3 -  "Month"  , 4 -  "Week" , 5 -  "Year"
+levels(test_train_1$PW_WAGE_LEVEL) <- c(0,1,2,3,4)   
+# 0 -""   1- "Level I"  2- "Level II" 3- "Level III" 4- "Level IV"
+levels(test_train_1$PW_SOURCE) <- c(0,1,2,3,4,5)   
+# 0 -""   1-   "CBA"  2- "DBA"  3- "OES"  4- "Other" 5- "SCA"  
+levels(test_train_1$H1B_DEPENDENT) <- c(0,1,2)   #  0 - "", 1 - N ,  2 - Y
+levels(test_train_1$WILLFUL_VIOLATOR) <- c(0,1,2)    #  0 - "", 1 - N ,  2 - Y
+levels(test_train_1$WORKSITE_REGION) <- c(1,2,3,4,5)
+# 1- "North Central" 2-  "Northeast"  3-   "OffShore"   4-   "South"      5-   "West" 
+
+Accuracy <- c()
+for(i in 1:100){
+  model.1 <- knn(train = train_train_1[,2:18], test = test_train_1[,2:18], cl = train_train_1[,1] , k = i)
+  Accuracy[i] <- confusionMatrix(test_train_1[,1],model.1)[[3]][[1]]
+}
+which.max(Accuracy)
+plot(1:100, Accuracy, main= "k vs Accuracy Plot")
+abline(v = 10, col = "red")
+
+
+# knn classification
+train1 <- train
+test1 <- X_test
+
+length(levels(train1$SOC_NAME))
+levels(train1$CASE_STATUS) <- c(1,0)   # 1 - Certified, 0 - Denied
+levels(train1$VISA_CLASS) <- c(1,2,3,4)     
+# 1 - "E-3 Australian"    2 - "H-1B"        3-  "H-1B1 Chile"   4-  "H-1B1 Singapore"
+levels(train1$AGENT_REPRESENTING_EMPLOYER) <- c(0,1,2)   #  0 - "", 1 - N ,  2 - Y
+levels(train1$FULL_TIME_POSITION) <- c(0,1)    # 1- Y  , 0 - N
+levels(train1$PW_UNIT_OF_PAY) <- c(0,1,2,3,4,5)
+# 0 - "" , 1 - "Bi-Weekly", 2 - "Hour"   , 3 -  "Month"  , 4 -  "Week" , 5 -  "Year"
+levels(train1$PW_WAGE_LEVEL) <- c(0,1,2,3,4)   
+# 0 -""   1- "Level I"  2- "Level II" 3- "Level III" 4- "Level IV"
+levels(train1$PW_SOURCE) <- c(0,1,2,3,4,5)   
+# 0 -""   1-   "CBA"  2- "DBA"  3- "OES"  4- "Other" 5- "SCA"  
+levels(train1$H1B_DEPENDENT) <- c(0,1,2)   #  0 - "", 1 - N ,  2 - Y
+levels(train1$WILLFUL_VIOLATOR) <- c(0,1,2)    #  0 - "", 1 - N ,  2 - Y
+levels(train1$WORKSITE_REGION) <- c(1,2,3,4,5)
+# 1- "North Central" 2-  "Northeast"  3-   "OffShore"   4-   "South"      5-   "West" 
+
+# levels(test1$CASE_STATUS) <- c(1,0)   # 1 - Certified, 0 - Denied
+levels(test1$VISA_CLASS) <- c(1,2,3,4)     
+# 1 - "E-3 Australian"    2 - "H-1B"        3-  "H-1B1 Chile"   4-  "H-1B1 Singapore"
+levels(test1$AGENT_REPRESENTING_EMPLOYER) <- c(0,1,2)   #  0 - "", 1 - N ,  2 - Y
+levels(test1$FULL_TIME_POSITION) <- c(0,1)    # 1- Y  , 0 - N
+levels(test1$PW_UNIT_OF_PAY) <- c(0,1,2,3,4,5)
+# 0 - "" , 1 - "Bi-Weekly", 2 - "Hour"   , 3 -  "Month"  , 4 -  "Week" , 5 -  "Year"
+levels(test1$PW_WAGE_LEVEL) <- c(0,1,2,3,4)   
+# 0 -""   1- "Level I"  2- "Level II" 3- "Level III" 4- "Level IV"
+levels(test1$PW_SOURCE) <- c(0,1,2,3,4,5)   
+# 0 -""   1-   "CBA"  2- "DBA"  3- "OES"  4- "Other" 5- "SCA"  
+levels(test1$H1B_DEPENDENT) <- c(0,1,2)   #  0 - "", 1 - N ,  2 - Y
+levels(test1$WILLFUL_VIOLATOR) <- c(0,1,2)    #  0 - "", 1 - N ,  2 - Y
+levels(test1$WORKSITE_REGION) <- c(1,2,3,4,5)
+# 1- "North Central" 2-  "Northeast"  3-   "OffShore"   4-   "South"      5-   "West" 
+
+
+model.11 <- knn(train = train1[,2:18], test = test1[,1:17], cl = train1[,1] , k = 10)
+levels(model.11) <- c("CERTIFIED", "DENIED")
+x<- model.11
+X <- 1:2093
+head(x)
+answer <- cbind.data.frame(X,x)
+colnames(answer) <- c("Ob", "CASE_STATUS")
+head(answer)
+write.csv(answer, file = "knn-method.csv", row.names = FALSE)
+
+```
+
+
+```{r}
+# Adaboost method
+#install.packages("fastAdaboost")
+library(fastAdaboost)
+fit <- adaboost(CASE_STATUS~.,data = train_train_1, nIter = 10)
+pred.ad <- predict(fit, newdata =test_train_1)
+pred.ad <- pred.ad$class
+confusionMatrix(test_train_1$CASE_STATUS,pred.ad)
+
+fit1 <- adaboost(CASE_STATUS~. , data = train2, nIter = 10)
+pred.ad1 <- predict(fit1, newdata = test2)
+pred.ad1 <- pred.ad1$class
+
+X <- 1:2093
+length(pred.ad1)
+answer <- cbind.data.frame(X,pred.ad1)
+colnames(answer) <- c("Ob", "CASE_STATUS")
+head(answer)
+write.csv(answer, file = "adaboost-method.csv", row.names = FALSE)
+answercsv <- read.csv("adaboost-method.csv")
+answercsv
+```
+
+
+
+
+```{r}
+# SVM METHOD or maybe Random Forest
+
+
+#install.packages("tree")
+#install.packages("randomForest")
+library(tree)
+library(randomForest)
+library(e1071)  
+library(caret)  
+library(ggplot2)  
+library(MASS)
+library(ISLR)
+
+str(train)
+str(X_test)
+levels(X_test$PW_UNIT_OF_PAY) <- levels(train$PW_UNIT_OF_PAY)
+levels(X_test$PW_SOURCE) <- levels(train$PW_SOURCE)
+
+train2 <- train
+test2 <- X_test
+full <- tree(CASE_STATUS~. , data = train2)
+summary(full)
+pred.full <- predict(full, newdata = test2, type = "class")
+table(pred.full)
+cvtree <- cv.tree(full, FUN = prune.misclass)
+cvtree
+
+pruned <-prune.misclass(full, best=5)
+pred.pr <- predict(pruned, newdata = test2, type = "class")
+rf <- randomForest(CASE_STATUS~., data = train2, mtry = 5, importance =TRUE)
+pred.rf <- predict(rf, data = train2)
+table(train2$CASE_STATUS, pred.rf)
+
+pred.rf.t <- predict(rf, newdata = test2)
+
+
+# testing with training data separated into 90,10
+full1 <- tree(CASE_STATUS~. , data = train_train_1)
+pred.full1 <- predict(full1, newdata = test_train_1, type = "class")
+cvtree1 <- cv.tree(full1, FUN = prune.misclass)
+pruned1 <- prune.misclass(full1, best= 5)
+pred.pr1 <- predict (pruned1, newdata = test_train_1, type = "class")
+table(pred.pr1, test_train_1$CASE_STATUS)
+rf1 <- randomForest(CASE_STATUS~., data = train_train_1, mtry = 12, importance =TRUE)
+pred.rf1 <- predict(rf1, data = train_train_1)
+pred.rf.t1 <- predict(rf1, newdata = test_train_1)
+
+table(test_train_1$CASE_STATUS, pred.rf.t1)
+
+
+misClasificError<- rep(NA,17)
+Accuracy<- c()
+for(mtry in 1:17){
+bag.h1=randomForest(CASE_STATUS~.,data=train_train_1, mtry=mtry,importance=TRUE)
+yhat.bag = predict(bag.h1,newdata=test_train_1)
+#plot(yhat.bag, h1.test.case)
+misClasificError[mtry] <- mean(yhat.bag != test_train_1$CASE_STATUS)
+Accuracy[mtry]<-1-misClasificError[mtry]
+}
+
+
+
+Accuracy
+which.max(Accuracy)
+plot(1:17, Accuracy, type='b')
+
+
+
+X <- 1:2093
+length(pred.rf)
+answer <- cbind.data.frame(X,pred.rf.t)
+colnames(answer) <- c("Ob", "CASE_STATUS")
+head(answer)
+write.csv(answer, file = "randomforest-method.csv", row.names = FALSE)
+answercsv <- read.csv("randomforest-method.csv")
+answercsv
+
+```
+
+```{r}
+sample <- sample(4918,4426)
+train_train <- train[sample,]
+test_train <- train[-sample,]
+
+train_train_1 <- train_train
+test_train_1 <- test_train
+train2 <- train
+test2 <- X_test
+#SVM
+# with training data split into 90 ,10
+
+svmfit <-svm(CASE_STATUS~. , data = train_train_1)
+preds <- predict(svmfit, newdata = test_train_1)
+table(preds, test_train_1$CASE_STATUS)
+
+tune.out <- tune(svm,CASE_STATUS~.,data=train_train_1,kernel="radial",ranges=list(cost=c(0.1,1,10,100,1000),gamma=c(0.4,1,2,3,4)))
+summary(tune.out)
+tune.out$best.performance
+tune.out$best.parameters
+
+preds.tr <- predict(tune.out$best.model, data = train_train_1)
+table(preds.tr,train_train_1$CASE_STATUS)
+
+preds <- predict(tune.out$best.model, newdata = test_train_s1)
+table(preds,test_train_1$CASE_STATUS)
+
+# With Test data
+svmfit1 <-svm(CASE_STATUS~. , data = train2, kernel = "radial", gamma= 1)
+preds1 <- predict(svmfit1, newdata = test2)
+
+tune.out1 <- tune(svm,CASE_STATUS~.,data=train2, kernel="radial",ranges=list(cost=c(0.1,1,10,100,1000),gamma=c(0.4,1,2,3,4)))
+summary(tune.out1)
+tune.out1$best.performance
+tune.out1$best.parameters
+
+preds.tr1 <- predict(tune.out1$best.model, data = train2)
+table(preds.tr1,train2$CASE_STATUS)
+
+preds1 <- predict(tune.out1$best.model, newdata = test2)
+
+answer1 <- cbind.data.frame(X,preds1)
+colnames(answer1) <- c("Ob", "CASE_STATUS")
+write.csv(answer1, file = "real-svm-method.csv", row.names = FALSE)
+answercsv <- read.csv("real-svm-method.csv")
+answercsv
+
+
+```
+
+```{r}
+##### Load Data #####
+  train <- read.csv("TrainH1BLast.csv")
+  X_test <- read.csv('TestH1BLast No Y values.csv')
+  
+  
+##### Cleaning #####  
+## NA's
+  table(is.na(train)) ['TRUE'] / sum(table(is.na(train)))
+  table(is.na(X_test)) ['TRUE'] / sum(table(is.na(X_test)))
+    # Very small percentage of total NA's
+
+  for (i in 1:ncol(X_test)) print(paste('Column', i, table(is.na(X_test [, i])) ['TRUE'], sep = ' ' ))
+  drop_col <- c("EMPLOYER_PHONE_EXT", "PUBLIC_DISCLOSURE_LOCATION", "PW_SOURCE_YEAR", "Ob")
+    # These are the only columns with NA's and they don't seem to be important --> drop
+  X_test <- X_test [, -which(names(X_test) %in% drop_col)]
+  train <- train [, -which(names(train) %in% drop_col)]
+  
+  for (i in 1:ncol(train)) print(paste('Column', i, table(is.na(train [, i])) ['TRUE'], sep = ' ' ))
+    # Clearing testing also cleared training of NA's
+  
+## Columns with Majority Blanks ""
+  for (i in 1:ncol(X_test)) print(paste('Column', i, sum(X_test [, i] == ""), sep = ' ' ))
+  drop_col2 <- c("EMPLOYER_BUSINESS_DBA", "EMPLOYER_PROVINCE", "AGENT_ATTORNEY_CITY",
+                 "AGENT_ATTORNEY_STATE", "SUPPORT_H1B", "LABOR_CON_AGREE", "ORIGINAL_CERT_DATE",
+                 "EMPLOYER_PHONE", "EMPLOYER_NAME", "WORKSITE_COUNTY", "PW_SOURCE_OTHER")
+    # These are the only columns with blanks, not important --> drop
+  X_test <- X_test [, -which(names(X_test) %in% drop_col2)]
+  train <- train [, -which(names(train) %in% drop_col2)]
+  
+## Get Salary from Wage and Payroll
+  # Fix typos
+  train [c(56, 717, 1598, 622, 1002, 299, 1426, 1936), "PW_UNIT_OF_PAY"]  <- "Year"
+  
+## Convert Time Data  
+  finish_train <- as.Date(train$DECISION_DATE, format = "%m/%d/%Y")
+  start_train <- as.Date(train$CASE_SUBMITTED, format = "%m/%d/%Y")
+  days_diff_train <- as.data.frame(finish_train - start_train) [, 1]
+  train ['DAYS_DIFF'] <- as.numeric(days_diff_train)   
+  
+  finish_test <- as.Date(X_test$DECISION_DATE, format = "%m/%d/%Y")
+  start_test <- as.Date(X_test$CASE_SUBMITTED, format = "%m/%d/%Y")
+  days_diff_test <- as.data.frame(finish_test - start_test) [, 1]
+  X_test ['DAYS_DIFF'] <- as.numeric(days_diff_test)  
+    
+## Drop un-important columns
+  drop_col3 <- c("EMPLOYER_ADDRESS", "EMPLOYER_CITY", "EMPLOYER_POSTAL_CODE",
+                 "EMPLOYER_COUNTRY", "EMPLOYMENT_START_DATE", "EMPLOYMENT_END_DATE", "EMPLOYER_STATE",
+                 "WORKSITE_POSTAL_CODE", "WORKSITE_CITY", "NAICS_CODE", "SOC_CODE", "SOC_NAME",
+                 "WAGE_UNIT_OF_PAY", "AGENT_ATTORNEY_NAME", "JOB_TITLE",
+                 "CASE_SUBMITTED", "DECISION_DATE",
+                 "CHANGE_PREVIOUS_EMPLOYMENT", "NEW_CONCURRENT_EMPLOYMENT", "CHANGE_EMPLOYER")
+  X_test <- X_test [, -which(names(X_test) %in% drop_col3)]
+  train <- train [, -which(names(train) %in% drop_col3)]
+   
+## Group region   
+  df <- cbind.data.frame(as.character(state.region), as.character(state.abb))
+  
+  # Change to str
+  X_test$WORKSITE_STATE <- as.character(X_test$WORKSITE_STATE)
+  train$WORKSITE_STATE <- as.character(train$WORKSITE_STATE)
+  
+  for (region in levels(state.region)) {
+    for (reg_state in as.character(df [df[, 1] == region, 2])) {
+      X_test$WORKSITE_STATE [which(X_test$WORKSITE_STATE %in% reg_state)] <- region
+      train$WORKSITE_STATE [which(train$WORKSITE_STATE %in% reg_state)] <- region
+    }
+  }
+  # Leftovers
+  X_test$WORKSITE_STATE [which(X_test$WORKSITE_STATE == "DC")] <- "West"
+  train$WORKSITE_STATE [which(train$WORKSITE_STATE == "DC")] <- "West"  
+  X_test$WORKSITE_STATE [which(X_test$WORKSITE_STATE %in% c("GU", "MP", "PR", "", "VI"))] <- "OffShore"
+  train$WORKSITE_STATE [which(train$WORKSITE_STATE %in% c("GU", "MP", "PR", "", "VI"))] <- "OffShore"
+  
+  # Change to Factor
+  X_test$WORKSITE_STATE <- as.factor(X_test$WORKSITE_STATE)
+  train$WORKSITE_STATE <- as.factor(train$WORKSITE_STATE)
+  
+  # Change name
+  names(train) [names(train) == "WORKSITE_STATE"] <- "WORKSITE_REGION"
+  names(X_test) [names(X_test) == "WORKSITE_STATE"] <- "WORKSITE_REGION"
+```
+
+
