@@ -1,5 +1,5 @@
 ---
-title: "STAT 101A Project"
+title: "Happiness Project"
 output: html_document
 ---
 
